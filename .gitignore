@@ -3,6 +3,8 @@
 
 # But not these files
 !.gitignore
+!.md
+!.txt
 
 !*.rb
 !*.conf
