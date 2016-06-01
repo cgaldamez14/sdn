@@ -25,7 +25,9 @@ class MyController < Controller
     # Setting 'mas_len" to 'OFCPCML_NO_BUFFER' I believe tells the switch to send the whole packet to the controller
     action = SendOutPort.new(port_number: OFPP_CONTROLLER, max_len: OFPCML_NO_BUFFER) # This is an action to output a packet to a port
     ins = ApplyAction.new(actions: [action])
-    # Adds openflow header to packet 
+    # Adds a new entry to the switch fowarding table only if it does not exist in the table already
+    # If it does not have an entry that tells it how to deal with this packet then it will execute the action
+    # specified in 'action' which would be to send it to the controller.
     send_flow_mod_add(datapath_id,
                       priority: OFP_LOW_PRIORITY,
                       buffer_id: OFP_NO_BUFFER,
@@ -36,7 +38,7 @@ class MyController < Controller
 
   # Acts as the controller
   def packet_in(datapath_id, packet)
-    # fdb is the fowarding database class (fowarding table for virtual switch)
+    # fdb is the fowarding database class (fowarding table for controller...there are two separte ones)
     # 'fdb.learn takes in the mac address attribute and first checks whether mac address
     # exists in the fowarding table, if it does not it creates a new entry in the fowarding 
     # table for that mac address
@@ -47,7 +49,7 @@ class MyController < Controller
     
     # There is a possibility that port number for destination mac address was
     # not found in the fowarding table. If that is the case then we call the flood method.
-    # What the flood method does is that it sends the packet to all physical ports except the input port
+    # What the flood method does is that it sends the packet to all physical ports except the input port( does a breath first search)
     # If there is a port entry for the destination in the fowarding table, a header with instructions on how to handle
     # this packet is added to the packet using the flow_mod method and then a new action is created to 
     # send the packet to the destination 
@@ -144,7 +146,7 @@ class MyController < Controller
      return addresses.include?(dest_IP.to_s) && addresses.include?(source_IP.to_s)
   end  
   
-  # Adds flow header to packet and prepares packet to be sent to destination
+  # Adds to switch fowarding table
   def flow_mod(datapath_id, message, port_no)
     action = SendOutPort.new(port_number: port_no)
     ins = ApplyAction.new(actions: [action])
